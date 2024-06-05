@@ -58,3 +58,23 @@ saveRDS(PREDICTS_mammalia, file = "PREDICTS_mammalia.rds")
 folder_path <- "~/Desktop/DATABASES/data_modified"
 file_path <- file.path(folder_path, "PREDICTS_mammalia.rds")
 saveRDS(PREDICTS_mammalia, file = file_path)
+
+# -----------------------------------CALCULATING SITE METRICS-----------------------------------------------------
+
+# Load in PREDICTS and the Supplemental PREDICTS data and combine
+predicts <- bind_rows(predicts, predictssup)
+
+# Correct effort-sensitive abundance measures (assumes linear relationship between effort and recorded abundance)
+predicts <- predictsFunctions::CorrectSamplingEffort(diversity = predicts)
+
+# Merge sites that have the same coordinates 
+predicts <- predictsFunctions::MergeSites(diversity = predicts)
+
+# Calculate site metrics of diversity
+sites <- SiteMetrics(diversity = predicts,
+                     extra.cols = c("Predominant_land_use",
+                                    "SSB","SSBS","Biome"))
+
+# Merge with the mammal subset data to add abundance column
+sites_selected <- sites %>% select(SSBS, Total_abundance, Species_richness, Simpson_diversity)
+PREDICTS_mammalia <- left_join(PREDICTS_mammalia, sites_selected, by = "SSBS")
