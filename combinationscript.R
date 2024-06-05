@@ -9,7 +9,7 @@ PREDICTS_subset <- PREDICTS_mammalia %>% select(Source_ID , Reference , Diversit
                                                 Sampling_effort , Habitat_as_described , Longitude , 
                                                 Latitude , Country , Ecoregion , Biome , Order , Family , 
                                                 Genus , Species , Best_guess_binomial , Measurement, 
-                                                Sample_start_earliest , Total_abundance)
+                                                Sample_start_earliest , Total_abundance, Species_richness)
 
 # Merging the mammal communities data
 MCDB_sites_trapping <- merge(MCDB_sites, MCDB_trapping, by = "Site_ID", all = FALSE)
@@ -18,10 +18,16 @@ MCDB_communities_species <- merge(MCDB_communities, MCDB_species, by = "Species_
 MCDB_subset <- left_join(MCDB_communities_species, MCDB_sites_trapping, by = c("Site_ID", "Initial_year"))
 MCDB_subset <- MCDB_subset %>% arrange(Site_ID)
 
+MCDB_subset$Best_guess_binomial = paste(MCDB_subset$Genus, MCDB_subset$Species, sep=" ")
+
+MCDB_subset <- MCDB_subset %>%
+  group_by(`Site_ID/SSS`) %>%
+  mutate(Species_richness = n_distinct(Best_guess_binomial))
+
 # Subsetting the mammal communities data
 MCDB_subset <- MCDB_subset %>% select(Site_ID , Initial_year , Presence_only , Abundance , Family , Genus , 
                                       Species , Country , Latitude , Longitude , Habitat_description , Trap_nights ,
-                                      Reference_ID)
+                                      Reference_ID , Species_richness)
 
 #Renaming variables so they bind in the same column
 names(MCDB_subset)[names(MCDB_subset) == "Reference_ID"] <- "Reference"
@@ -30,7 +36,7 @@ names(MCDB_subset)[names(MCDB_subset) == "Trap_nights"] <- "Sampling_effort"
 names(PREDICTS_subset)[names(PREDICTS_subset) == "Sample_start_earliest"] <- "Initial_year"
 names(MCDB_subset)[names(MCDB_subset) == "Site_ID"] <- "Site_ID/SSS"
 names(PREDICTS_subset)[names(PREDICTS_subset) == "SSS"] <- "Site_ID/SSS"
-names(PREDICTS_subset)[names(PREDICTS_subset) == "Total_abundance"] <- "Abundance"
+names(PREDICTS_subset)[names(PREDICTS_subset) == "Total_abundance"] <- "Site_abundance"
 
 # Putting them together
 PREDICTS_subset$Sampling_effort <- as.numeric(PREDICTS_subset$Sampling_effort)
@@ -66,9 +72,7 @@ dd <- dd %>%
 #adding column for rescaling factor
 dd$rescaling_factor = 1/dd$effort_rescaled
 
-#adding column for abundance corrected
-dd <- dd %>% 
-  mutate(abundance_corrected = Abundance * rescaling_factor)
+
 
 # Removing sites that don't have long/lat information and sites with invalid longitude information (17)
 dd <- dd[complete.cases(dd$Longitude, dd$Latitude), ]
