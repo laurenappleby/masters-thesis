@@ -8,7 +8,8 @@ PREDICTS_subset <- PREDICTS_mammalia %>% select(Source_ID , Reference , Diversit
                                                 Diversity_metric_is_effort_sensitive , SSS , SSB, 
                                                 Sampling_effort , Habitat_as_described , Longitude , 
                                                 Latitude , Country , Ecoregion , Biome , Order , Family , 
-                                                Genus , Species , Best_guess_binomial , Measurement, Sample_start_earliest)
+                                                Genus , Species , Best_guess_binomial , Measurement, 
+                                                Sample_start_earliest , Total_abundance)
 
 # Merging the mammal communities data
 MCDB_sites_trapping <- merge(MCDB_sites, MCDB_trapping, by = "Site_ID", all = FALSE)
@@ -29,6 +30,7 @@ names(MCDB_subset)[names(MCDB_subset) == "Trap_nights"] <- "Sampling_effort"
 names(PREDICTS_subset)[names(PREDICTS_subset) == "Sample_start_earliest"] <- "Initial_year"
 names(MCDB_subset)[names(MCDB_subset) == "Site_ID"] <- "Site_ID/SSS"
 names(PREDICTS_subset)[names(PREDICTS_subset) == "SSS"] <- "Site_ID/SSS"
+names(PREDICTS_subset)[names(PREDICTS_subset) == "Total_abundance"] <- "Abundance"
 
 # Putting them together
 PREDICTS_subset$Sampling_effort <- as.numeric(PREDICTS_subset$Sampling_effort)
@@ -47,17 +49,26 @@ as.factor(MCDB_subset$`Site_ID/SSS`)
 PREDICTS_subset$Initial_year <- as.character(PREDICTS_subset$Initial_year)
 as.character(PREDICTS_subset$Initial_year)
 
+MCDB_subset$Abundance <- as.double(MCDB_subset$Abundance)
+as.double(MCDB_subset$Abundance)
+
 dd <- bind_rows(PREDICTS_subset, MCDB_subset)
 
-# Rescaling Sampling Effort
+# Rescaling Sampling Effort adding column for max effort
 dd <- dd %>%
   group_by(Reference) %>%
   mutate(max_effort = max(Sampling_effort))
 
+#adding column for effort rescaled
 dd <- dd %>%
   mutate(effort_rescaled = Sampling_effort / max_effort)
 
+#adding column for rescaling factor
 dd$rescaling_factor = 1/dd$effort_rescaled
+
+#adding column for abundance corrected
+dd <- dd %>% 
+  mutate(abundance_corrected = Abundance * rescaling_factor)
 
 # Removing sites that don't have long/lat information and sites with invalid longitude information (17)
 dd <- dd[complete.cases(dd$Longitude, dd$Latitude), ]
