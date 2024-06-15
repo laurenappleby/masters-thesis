@@ -64,7 +64,7 @@ MCDB_plot <- ggplot(data.frame(MCDB_zoo), aes(x=Order, fill = Order)) +
 install.packages("gridExtra")
 library(gridExtra)
 
-grid.arrange(predicts1_plot, predicts2_plot, MCDB_plot, ncol = 2)
+grid.arrange(predicts1_plot, predicts2_plot, MCDB_plot, ncol = 2) 
 
 
 
