@@ -116,5 +116,23 @@ sites_i <- all_sites %>%
 dd2 <- dd2 %>%
   left_join(sites_i %>% select(Reference, all_sites_same) %>% distinct(), by = "Reference")
 
+# Merging the NCBI Resolved taxonomy data
+# Removing unresolved observations from the mammal binomials resolved data 
+mammal_binomials_resolved <- mammal_binomials_resolved %>%
+  filter(HostNCBIResolved)
+
+# Combining the "to resolve" and "mammal binomials resolved" data
+binoms_final <- bind_rows(to_resolve_edits, mammal_binomials_resolved)
+
+# renaming so they merge
+names(binoms_final)[names(binoms_final) == "Binomial"] <- "Best_guess_binomial"
+
+# subsetting so there's no repeat columns 
+binoms_final <- binoms_final %>% select(Genus, Species, Best_guess_binomial, HostTaxID, HostNCBIResolved, Host, 
+                                        HostGenus, HostFamily, HostOrder, HostClass)
+
+# throw those bad boys together!!!
+dd2 <- left_join(dd2, binoms_final, by = "Best_guess_binomial")
+
 
 
