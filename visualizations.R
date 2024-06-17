@@ -8,6 +8,8 @@ library(wesanderson)
 install.packages("RColorBrewer")
 library(RColorBrewer)
 
+# ----------------------------MAKING BARPLOTS---------------------------------------------------------------
+
 # Subsetting the PREDICTS_1 data to just include species that most commonly carry zoonotic diseases
 predicts_zoo <- dplyr::filter(PREDICTS_1, Order %in% c("Rodentia", "Chiroptera", "Soricomorpha", "Carnivora", "Artiodactyla", "Primates"))
 predicts_zoo <- predicts_zoo %>% select(Order)
@@ -65,6 +67,41 @@ install.packages("gridExtra")
 library(gridExtra)
 
 grid.arrange(predicts1_plot, predicts2_plot, MCDB_plot, ncol = 2) 
+
+#-----------------------------------------------------------------------------------------------------------------
+
+#------------------------------------------------ MAKING MAPS -------------------------------------------------------
+
+#Making a Dataframe with just MCDB sites that only have 1 geolocation
+MCDB_sites_same <- MCDB_subset %>% select(Reference, Latitude, Longitude)
+
+MCDB_i <- MCDB_sites_same %>%
+  group_by(Reference) %>%
+  mutate(All_Same = all(Latitude == first(Latitude) & Longitude == first(Longitude))) %>%
+  ungroup()
+
+MCDB_i <-MCDB_i %>%
+  filter(!All_Same)
+
+
+library(maps)
+
+# Making a map with all the distinct data sets with one geolocation
+map("world", fill = TRUE, col = "lightblue", bg = "white")
+  points(MCDB_i$Longitude, MCDB_i$Latitude, col = "#1b9e77", pch = 16, cex = 0.5)
+  points(PREDICTS_1$Longitude, PREDICTS_1$Latitude, col = "#7570b3", pch = 16, cex = 0.5)
+  points(PREDICTS_2$Longitude, PREDICTS_2$Latitude, col = "#e7298a", pch = 16, cex = 0.5)
+
+# ---------------------------------------------------------------------------------------------------
+  
+
+
+  
+
+
+
+
+
 
 
 
