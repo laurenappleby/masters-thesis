@@ -2,6 +2,7 @@
 # Combining the PREDICTS and MCDB data into one Data Frame:
 
 library(dplyr)
+library(tidyr)
 
 # First subsetting the PREDICTS database to just keep the relevant columns
 PREDICTS_subset <- PREDICTS_mammalia %>% select(Reference , Diversity_metric_type , 
@@ -65,6 +66,7 @@ as.double(MCDB_subset$Measurement)
 
 MCDB_subset$Site_ID <- as.factor(MCDB_subset$Site_ID)
 as.factor(MCDB_subset$Site_ID)
+write.csv(MCDB_subset,"~/Desktop/DATABASES/data_modified/MCDB_subset.csv", row.names = FALSE)
 
 
 #Putting them together
@@ -133,6 +135,30 @@ binoms_final <- binoms_final %>% select(Genus, Species, Best_guess_binomial, Hos
 
 # throw those bad boys together!!!
 dd2 <- left_join(dd2, binoms_final, by = "Best_guess_binomial")
+
+# Adding in the Virion Data 
+# Load in Virion database
+# subset to only include columns we want
+virion_subset <- Virion %>% select(HostTaxID, VirusTaxID, VirusNCBIResolved, VirusGenus, 
+                                   VirusFamily, VirusOrder, VirusClass, VirusOriginal)
+
+# Calculating viral richness for each species
+virion_subset <- virion_subset %>%
+  group_by(HostTaxID) %>%
+  mutate(Virus_richness = n_distinct(VirusTaxID))
+
+# subsetting for just unique hosts and associated viral richness
+viral_richness <- virion_subset %>% 
+  select(HostTaxID, Virus_richness) 
+
+viral_richness <- viral_richness %>%
+  distinct(HostTaxID, .keep_all = TRUE)
+
+dd2 <- left_join(dd2, viral_richness, by = "HostTaxID")
+
+# Making the N/As in the virus richness column 0 
+dd2 <- dd2 %>%
+  mutate(Virus_richness = replace_na(Virus_richness, 0))
 
 
 
