@@ -1,0 +1,89 @@
+---
+title: "EVI Code"
+output: html_notebook
+---
+
+#----------------------------FIRST LIL BIT JUST SOME EXPLORATION W A SMALL SAMPLE-----------------
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(bfast)
+library(zoo)
+library(timetk)
+library(stlplus)
+#remotes::install_github("christophsax/tsbox")
+library(tsbox)
+
+# Convert the data into a zoo time series 
+ee_chart$`system:time_start` <- as.Date(ee_chart$`system:time_start`, format = "%b %d, %Y")
+ee_chart <- read.zoo(ee_chart)
+
+```
+
+```{r}
+# convert the time series into a tibble 
+tstib <- tk_tbl(ee_chart)
+names(tstib)[names(tstib) == "00000000000000000000"] <- "evi"
+ts_subset <- tstib %>% select(index, evi)
+ts_plot(`Raw series` = ts_subset,
+        `Adjusted serie` = ts_trend(ts_subset))
+
+```
+
+```{r}
+library(lubridate)
+
+evi <- head(EVI_Export3, 50)
+evi <- EVI_Export3 %>%
+  select(date, `Site_ID/SSS`, mean) %>%
+  pivot_wider(names_from = `Site_ID/SSS`, values_from = mean)
+
+evi_monthly <- evi %>%
+  mutate(month = floor_date(date, "month")) %>%
+  group_by(month) %>%
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+start_year <- year(min(evi_monthly$month))
+start_month <- month(min(evi_monthly$month))
+frequency <- 12
+
+evi_ts <- ts(evi_monthly[,-1], start = c(start_year, start_month), frequency = frequency)
+
+fit <- bfast01(evi_ts[,8])
+plot(fit)
+```
+
+
+```{r}
+# gonna see if this works for just one obs. 
+
+one_evi <- evi_monthly %>% select(month, `HP1_2004__Ancrenaz 1 94`)
+one_ts <- ts(one_evi[,-1], start = c(start_year, start_month), frequency = frequency)
+
+ts_plot(`Raw series` = one_ts,
+        `Adjusted series` = ts_trend(one_ts))
+
+fit <- bfast01(one_ts[,1])
+plot(fit)
+```
+
+
+
+
+
+```{r}
+library(tibbletime)
+library(tibble)
+
+one_evi <- evi_monthly %>% select(month, `HP1_2004__Ancrenaz 1 94`)
+tbl_ts_data <- as_tbl_time(one_evi, index = month)
+
+ts_plot(`Raw series` = tbl_ts_data,
+        `Adjusted series` = ts_trend(tbl_ts_data))
+
+fit <- bfast01(tbl_ts_data)
+
+
+```
+
