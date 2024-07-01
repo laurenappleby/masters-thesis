@@ -4,6 +4,8 @@
 library(dplyr)
 library(tidyr)
 
+#-----------------------SUBSETTING/COMBINING DATA FRAMES-----------------------------------------------------
+
 # First subsetting the PREDICTS database to just keep the relevant columns
 PREDICTS_subset <- PREDICTS_mammalia %>% select(Reference , Diversity_metric_type , 
                                                 Diversity_metric_is_effort_sensitive , SSS , SSB, 
@@ -72,6 +74,8 @@ write.csv(MCDB_subset,"~/Desktop/DATABASES/data_modified/MCDB_subset.csv", row.n
 #Putting them together
 dd <- bind_rows(PREDICTS_subset, MCDB_subset)
 
+#---------------------HARMONIZING/RESCALING SAMPLING EFFORT-----------------------------------------
+
 # Adding Diversity Metric TRUE/FALSE to the MCDB data within the combined frame
 dd$Diversity_metric_is_effort_sensitive[dd$Diversity_metric_type == "Occurrence"] <- FALSE
 dd$Diversity_metric_is_effort_sensitive[dd$Diversity_metric_type == "Abundance"] <- TRUE
@@ -99,25 +103,34 @@ dd$Abundance[dd$Diversity_metric_type == "Occurrence"] <- NA
 dd$Abundance_rescaled = dd$rescaling_factor * dd$Measurement
 names(dd)[names(dd) == "Abundance_rescaled"] <- "Measurement_rescaled"
 
-# Removing sites that don't have long/lat information and sites with invalid longitude information (17)
+#---------------------------------------------------------------------------------------------------------
+
+# -----------------Removing sites that don't have long/lat information and sites with invalid longitude information (17)
 dd <- dd[complete.cases(dd$Longitude, dd$Latitude), ]
 
 invalid_lon <- dd$Longitude < -180 | dd$Longitude > 180
 invalid_rows <- invalid_lon
 dd <- dd[!invalid_rows, ]
 
+#------------------------------------------------------------------------------------------------------------
+
+# --------------------------------------Finding studies w one geolocation-----------------------------------
+
+# THERE IS SOMETHING WRONG WITH THIS CODE RN
+
 # Finding which study sites only have one geolocation 
 # Read in a subset of the data which has reference, Lat, and Long columns called "all_sites"
 # Make a new column that states TRUE or FALSE if all geolocations in one reference are the same
 sites_i <- all_sites %>%
   group_by(Reference) %>%
-  mutate(All_Same = all_sites_same(Latitude == first(Latitude) & Longitude == first(Longitude))) %>%
-  ungroup()
+  mutate(All_Same = all_sites_same(Latitude == first(Latitude) & Longitude == first(Longitude)))
 
 # Merge the resulting column into the big data frame
 dd2 <- dd2 %>%
   left_join(sites_i %>% select(Reference, all_sites_same) %>% distinct(), by = "Reference")
 
+#---------------------------------------------------------------------------------------------------------
+#--------------------------------------RESOLVING TAXONOMY---------------------------------------------------
 # Merging the NCBI Resolved taxonomy data
 # Removing unresolved observations from the mammal binomials resolved data 
 mammal_binomials_resolved <- mammal_binomials_resolved %>%
@@ -136,7 +149,9 @@ binoms_final <- binoms_final %>% select(Genus, Species, Best_guess_binomial, Hos
 # throw those bad boys together!!!
 dd2 <- left_join(dd2, binoms_final, by = "Best_guess_binomial")
 
-# Adding in the Virion Data 
+#-------------------------------------------------------------------------------------------------------------
+
+# ----------------------------Adding in the Virion Data ------------------------------------------------------
 # Load in Virion database
 # subset to only include columns we want
 virion_subset <- Virion %>% select(HostTaxID, VirusTaxID, VirusNCBIResolved, VirusGenus, 
@@ -159,6 +174,9 @@ dd2 <- left_join(dd2, viral_richness, by = "HostTaxID")
 # Making the N/As in the virus richness column 0 
 dd2 <- dd2 %>%
   mutate(Virus_richness = replace_na(Virus_richness, 0))
+
+#----------------------------------------------------------------------------------------------------------
+
 
 
 
