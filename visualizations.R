@@ -75,7 +75,7 @@ grid.arrange(predicts1_plot, predicts2_plot, MCDB_plot, ncol = 2)
 #Making a Dataframe with just MCDB sites that only have 1 geolocation
 MCDB_sites_same <- MCDB_subset %>% select(Reference, Latitude, Longitude)
 
-MCDB_i <- MCDB_sites_same %>%
+MCDB_i<- MCDB_sites_same %>%
   group_by(Reference) %>%
   mutate(All_Same = all(Latitude == first(Latitude) & Longitude == first(Longitude))) %>%
   ungroup()
@@ -83,6 +83,7 @@ MCDB_i <- MCDB_sites_same %>%
 MCDB_i <-MCDB_i %>%
   filter(!All_Same)
 
+rm(sites_same)
 
 library(maps)
 
@@ -94,14 +95,41 @@ map("world", fill = TRUE, col = "lightblue", bg = "white")
 
 # ---------------------------------------------------------------------------------------------------
   
-
-
+write.csv(MCDB_i,"~/Desktop/DATABASES/data_modified/MCDB_i.csv", row.names = FALSE)
   
+4640/31044
+14.9 %
+unique(MCDB_subset$Best_guess_binomial)
+unique(PREDICTS_1$Best_guess_binomial)
+unique(PREDICTS_2$Best_guess_binomial)
+
+setdiff(MCDB_subset$Best_guess_binomial, PREDICTS_1$Best_guess_binomial)
 
 
+566 
+
+setdiff(PREDICTS_2$Best_guess_binomial, PREDICTS_1$Best_guess_binomial)
+
+22
+
+setdiff(PREDICTS_1$Best_guess_binomial, union(MCDB_subset$Best_guess_binomial, PREDICTS_2$Best_guess_binomial))
+
+566+22+408
+
+406
+588/562
+566+22
+
+588+408
 
 
+sites_subset <- all_sites[sample(nrow(all_sites), 5), ]
+sites_sub1 <- head(all_sites, 10000)
+
+unique_sites <- dd3 %>% select(`Site_ID/SSS`, Longitude, Latitude)
+unique_sites <- unique_sites %>% group_by(Longitude, Latitude) %>%
+  slice(1) %>%
+  ungroup()
 
 
-
-
+write.csv(unique_sites,"~/Desktop/DATABASES/data_modified/unique_sites.csv", row.names = FALSE)
