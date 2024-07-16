@@ -1,0 +1,83 @@
+---
+title: "Landcover Data"
+output: html_notebook
+---
+
+This script  will go over the dissimilarity and land classifications for each of my unique sites.
+
+This first section will go over the unique sites and take a mean dissimilarity value for each 
+
+```{r}
+# possible dependancies:
+library(exactextractr)
+library(dplyr); library(magrittr); library(tibble)
+library(sf); library(ggplot2); library(tidyr); library(rstudioapi)
+library(mgcv); library(gratia); library(lme4)
+library(raster); library(terra) 
+
+# convert to an sf object by providing the XY columns as coordinates
+# initially we create an object in the WGS84 projection with a lat-lon units (CRS = 4326)
+locs <- unique_sites
+locs = sf::st_as_sf(x = locs, 
+                    coords = c("Longitude", "Latitude"),
+                    crs = 4326)
+
+# reproject using st_transform to a meters projection
+#locs = sf::st_transform(locs, 
+                  #crs = "+proj=utm +zone=36 +south +datum=WGS84 +units=km +no_defs")
+
+plot(locs$geometry)
+
+
+```
+
+Alright now that the site data is transformed into an sf object we can continue
+
+```{r}
+hab = terra::rast("~/Desktop/DATABASES/data_raw/Copernicus/cop_data.tif")
+terra::plot(hab)
+```
+
+
+```{r}
+hab2 = terra::rast("~/Desktop/DATABASES/data_raw/Copernicus/diss_1k.tif")
+terra::plot(hab2)
+plot(hab2)
+```
+```{r}
+# create buffers around each site using st_buffer
+# this is set to 1km 
+locs_buf = sf::st_buffer(locs, dist=5000)
+plot(locs_buf$geometry) 
+```
+```{r}
+locs$mean_dissimilarity <- exact_extract(hab2, locs_buf, 'mean')
+```
+
+
+This is the second section of the script and will import a table I've exported from Google Earth Engine and create a new column that classifies each median value into a character from the band values found in the online meta data for the COPERNICUS sattelite. 
+
+```{r}
+# first reading in the chart I exported called "cop_6"
+cop_6 <- read_csv("~/Desktop/DATABASES/data_modified/cop_6.csv")
+# next adding a column that states the classification of each point
+cop_6 <- cop_6 %>%
+  mutate(classification = case_when(
+    median >= 19 & median <= 21 ~ "shrubs",
+    median >= 29 & median <= 31 ~ "herbaceous vegetation",
+    median >= 39 & median <= 41 ~ "agriculture",
+    median >= 49 & median <= 51 ~ "urban",
+    median >= 59 & median <= 61 ~ "bare/sparse vegetation",
+    median >= 69 & median <= 71 ~ "snow and ice",
+    median >= 79 & median <= 81 ~ "permanent water bodies",
+    median >= 89 & median <= 91 ~ "herbaceous wetland",
+    median >= 99 & median <= 101 ~ "moss and lichen",
+    median >= 109 & median <= 117 ~ "closed forest",
+    median >= 119 & median <= 127 ~ "open forest",
+    median >= 199 & median <= 201 ~ "ocean",
+    TRUE ~ "other"  # Default classification if no condition is met
+  ))
+
+# Yay it worked!
+```
+
